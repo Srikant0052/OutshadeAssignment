@@ -1,3 +1,5 @@
+const mongoose = require('mongoose');
+
 //Mandatory field validation function
 const isValid = (value) => {
     if (typeof value === 'undefined' || value === null) return false
@@ -12,4 +14,9 @@ const isValidRequestBody = (requestBody) => {
     return false;
 }
 
-module.exports = { isValid, isValidRequestBody };
+//ObjectId validation
+const isValidObjectId = (ObjectId) => {
+    return mongoose.Types.ObjectId.isValid(ObjectId)
+}
+
+module.exports = { isValid, isValidRequestBody ,isValidObjectId};

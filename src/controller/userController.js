@@ -1,7 +1,7 @@
 const userModel = require('../models/userModel');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
-const { isValid, isValidRequestBody } = require('../utils/validator');
+const { isValid, isValidRequestBody, isValidObjectId } = require('../utils/validator');
 const saltRounds = 10;
 const emailRegex = /^\w+([\.-]?\w+)@\w+([\.-]?\w+)(\.\w{2,3})+$/
 
@@ -120,12 +120,49 @@ const userLogout = async (req, res) => {
     }
 }
 
-// const changePassword = async (req, res) => {
-//     try {
+const changePassword = async (req, res) => {
+    try {
+        const userId = req.params.userId;
+        const requestBody = req.body;
+        const { currentPassword, newPassword } = requestBody;
 
-//     } catch (error) {
-//         return res.status(500).send({ status: false, message: error.message });
-//     }
-// }
+        // Basic user validation
+        if (!isValidRequestBody(requestBody)) {
+            return res.status(400).send({ status: false, message: "Invalid request parameters. Please provide User details" })
+        }
 
-module.exports = { userRegistration, userLogin, userLogout};
+        if (!isValidObjectId(userId)) {
+            return res.status(400).send({ status: false, message: 'Only Object Id allowed !' });
+        }
+        if (!isValid(currentPassword)) {
+            return res.status(400).send({ status: false, message: 'currentPassword is required' })
+        }
+        if (!isValid(newPassword)) {
+            return res.status(400).send({ status: false, message: 'newPassword is required' })
+        }
+
+        const user = await userModel.findById({ _id: userId });
+
+        // comparing password of DB and getting from user
+        const isMatched = await bcrypt.compare(currentPassword, user.password);
+        if (!isMatched) {
+            return res.status(400).send({ status: false, message: "Password not matched" });
+        }
+
+        // Password validation like upperCase, lowerCase , minLength, maxLength, Special character
+        if (!(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,15}$/.test(newPassword))) {
+            return res.status(400).send({ status: false, message: 'newPassword should be valid password' })
+        }
+
+        //hashing password using bcrypt
+        const hashPassword = bcrypt.hashSync(newPassword, saltRounds);
+
+        const passwordUpdate = await userModel.findByIdAndUpdate({ _id: userId }, { $set: { password: hashPassword } });
+        return res.status(200).send({ status: true, message: "Password change successfully" })
+
+    } catch (error) {
+        return res.status(500).send({ status: false, message: error.message });
+    }
+}
+
+module.exports = { userRegistration, userLogin, userLogout, changePassword };
