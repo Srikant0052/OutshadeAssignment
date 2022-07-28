@@ -101,7 +101,7 @@ const userLogin = async (req, res) => {
         const token = jwt.sign({
             userId: user._id
         }, 'abc123', { expiresIn: '1h' });
-        res.cookie(`jwt`, token);
+        res.cookie(`accessToken`, token);
 
         return res.status(200).send({ status: true, message: "Success" });
 
@@ -114,7 +114,7 @@ const userLogin = async (req, res) => {
 const userLogout = async (req, res) => {
     try {
         // Delete the token saved in cookie
-        res.clearCookie('jwt')
+        res.clearCookie('accessToken')
         return res.status(200).send({ status: true, message: 'User logout successfully' });
     } catch (error) {
         return res.status(500).send({ status: false, message: error.message });
