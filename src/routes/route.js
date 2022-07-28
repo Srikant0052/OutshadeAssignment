@@ -13,8 +13,11 @@ router.put('/updatePassword', userControoler.updatePassword);
 router.post('/resetPassword', userControoler.resetPassword);
 
 //Event Api's
-router.post('/event', eventController.createEvent);
-router.get('/users/:userId/invite', eventController.invite);
+router.post('/event', authorization, eventController.createEvent);
+router.get('/users/:userId/invite', authorization, eventController.invite);
+router.get('/users/:userId/list', authorization, eventController.list);
+router.put('/users/:eventId/update', authorization, eventController.updateEvent);
+
 
 
 module.exports = router;
