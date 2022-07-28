@@ -14,6 +14,7 @@ router.post('/resetPassword', userControoler.resetPassword);
 
 //Event Api's
 router.post('/event', eventController.createEvent);
+router.get('/users/:userId/invite', eventController.invite);
 
 
 module.exports = router;

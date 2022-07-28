@@ -6,6 +6,7 @@ const createEvent = async (req, res) => {
     try {
         const requestBody = req.body;
 
+        //Basic user validations
         if (!isValidRequestBody(requestBody)) {
             return res.status(400).send({ status: false, message: "Invalid request parameters. Please provide Event details" })
         }
@@ -33,13 +34,29 @@ const createEvent = async (req, res) => {
         const eventData = {
             eventName: eventName, description: description, date: date, createdBy: createdBy, invitees: invitees
         };
-        const eventCreated = await eventModel.create(eventData);
-        return res.status(201).send({ status: true, message: 'Event created successfully', data: eventCreated });
 
+        // Creating event and also adding invitee
+        const eventCreated = await (await eventModel.create(eventData)).populate(['invitees', 'createdBy']);
+        return res.status(201).send({ status: true, message: 'Event created successfully', data: eventCreated });
 
     } catch (error) {
         return res.status(500).send({ status: false, message: error.message });
     }
 };
 
-module.exports = { createEvent };
+const invite = async (req, res) => {
+    try {
+        const userId = req.params.userId;
+        if (!isValidObjectId(userId)) {
+            return res.status(400).send({ status: false, message: "Only objectId is allowed " });
+        }
+
+        const eventList = await eventModel.find({ createdBy: userId }).select({ _id: 0, createdAt: 0, updatedAt: 0, __v: 0 })
+        return res.status(200).send({ status: true, message: "Success", data: eventList })
+
+    } catch (error) {
+        return res.status(500).send({ status: false, message: error.message });
+    }
+}
+
+module.exports = { createEvent, invite };

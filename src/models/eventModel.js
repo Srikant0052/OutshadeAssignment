@@ -21,12 +21,8 @@ const eventSchema = new mongoose.Schema({
         required: true,
         ref: 'User'
     },
-    invitees: {
-        type: [mongoose.Schema.Types.ObjectId],
-        ref: 'User',
-        invitedAt: Date.now(),
-        required: true
-    }
+    invitees: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }]
+
 },
     { timestamps: true });
 module.exports = mongoose.model('Event', eventSchema);
