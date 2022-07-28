@@ -1,9 +1,10 @@
 const userModel = require('../models/userModel');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const nodemailer = require('nodemailer');
 const { isValid, isValidRequestBody, isValidObjectId } = require('../utils/validator');
 const saltRounds = 10;
-const emailRegex = /^\w+([\.-]?\w+)@\w+([\.-]?\w+)(\.\w{2,3})+$/
+const emailRegex = /^\w+([\.-]?\w+)@\w+([\.-]?\w+)(\.\w{2,3})+$/;
 
 // user registration 
 const userRegistration = async (req, res) => {
@@ -22,7 +23,7 @@ const userRegistration = async (req, res) => {
         }
 
         if (["Mr", "Mrs", "Miss"].indexOf(title) === -1) {
-            return res.status(400).send({ status: false, msg: "Please  enter a vaild Title" })
+            return res.status(400).send({ status: false, msg: "Please  enter a vaild Title" });
         }
         if (!isValid(fullname)) {
             return res.status(400).send({ status: false, message: "fullname is required" });
@@ -41,12 +42,12 @@ const userRegistration = async (req, res) => {
             return res.status(400).send({ status: false, message: "Email already registered" });
         }
         if (!isValid(password)) {
-            return res.status(400).send({ status: false, message: 'password is required' })
+            return res.status(400).send({ status: false, message: 'password is required' });
         }
 
         // Password validation like upperCase, lowerCase , minLength, maxLength, Special character
         if (!(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,15}$/.test(password))) {
-            return res.status(400).send({ status: false, message: 'password should be valid password' })
+            return res.status(400).send({ status: false, message: 'password should be valid password' });
         }
 
         //hashing password using bcrypt
@@ -55,9 +56,9 @@ const userRegistration = async (req, res) => {
         //create a object 
         const userData = {
             title: title, fullname: fullname, email: email, password: hashPassword
-        }
+        };
         const userCreated = await userModel.create(userData);
-        return res.status(201).send({ status: true, message: 'User created successfully', data: userCreated })
+        return res.status(201).send({ status: true, message: 'User created successfully', data: userCreated });
 
     } catch (error) {
         return res.status(500).send({ status: false, message: error.message });
@@ -87,7 +88,7 @@ const userLogin = async (req, res) => {
         // fetching user data using email
         const user = await userModel.findOne({ email });
         if (!user) {
-            return res.status(404).send({ status: false, message: "User doesn't exists. Please register first" })
+            return res.status(404).send({ status: false, message: "User doesn't exists. Please register first" });
         }
 
         // comparing password of DB and getting from user
@@ -135,10 +136,10 @@ const changePassword = async (req, res) => {
             return res.status(400).send({ status: false, message: 'Only Object Id allowed !' });
         }
         if (!isValid(currentPassword)) {
-            return res.status(400).send({ status: false, message: 'currentPassword is required' })
+            return res.status(400).send({ status: false, message: 'currentPassword is required' });
         }
         if (!isValid(newPassword)) {
-            return res.status(400).send({ status: false, message: 'newPassword is required' })
+            return res.status(400).send({ status: false, message: 'newPassword is required' });
         }
 
         const user = await userModel.findById({ _id: userId });
@@ -151,13 +152,55 @@ const changePassword = async (req, res) => {
 
         // Password validation like upperCase, lowerCase , minLength, maxLength, Special character
         if (!(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,15}$/.test(newPassword))) {
-            return res.status(400).send({ status: false, message: 'newPassword should be valid password' })
+            return res.status(400).send({ status: false, message: 'newPassword should be valid password' });
         }
 
         //hashing password using bcrypt
         const hashPassword = bcrypt.hashSync(newPassword, saltRounds);
 
         const passwordUpdate = await userModel.findByIdAndUpdate({ _id: userId }, { $set: { password: hashPassword } });
+        return res.status(200).send({ status: true, message: "Password change successfully" });
+
+    } catch (error) {
+        return res.status(500).send({ status: false, message: error.message });
+    }
+}
+
+
+const updatePassword = async (req, res) => {
+    try {
+        const requestBody = req.body;
+        const {  newPassword , email} = requestBody;
+
+        // Basic user validation
+        if (!isValidRequestBody(requestBody)) {
+            return res.status(400).send({ status: false, message: "Invalid request parameters. Please provide User details" })
+        }
+         if (!isValid(email)) {
+            return res.status(400).send({ status: false, message: "Email is required" });
+        }
+        if (!emailRegex.test(email)) {
+            return res.status(400).send({ status: false, message: "Email should be a valid email" });
+        }
+       
+        if (!isValid(newPassword)) {
+            return res.status(400).send({ status: false, message: 'newPassword is required' });
+        }
+
+        const user = await userModel.findOne({ email });
+        if (!user) {
+            return res.status(404).send({ status: false, message: "User doesn't exists. Please register first" });
+        }
+
+        // Password validation like upperCase, lowerCase , minLength, maxLength, Special character
+        if (!(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,15}$/.test(newPassword))) {
+            return res.status(400).send({ status: false, message: 'newPassword should be valid password' })
+        }
+
+        //hashing password using bcrypt
+        const hashPassword = bcrypt.hashSync(newPassword, saltRounds);
+
+        const passwordUpdate = await userModel.findByIdAndUpdate({ _id: user._id }, { $set: { password: hashPassword } });
         return res.status(200).send({ status: true, message: "Password change successfully" })
 
     } catch (error) {
@@ -165,4 +208,52 @@ const changePassword = async (req, res) => {
     }
 }
 
-module.exports = { userRegistration, userLogin, userLogout, changePassword };
+
+const resetPassword = async (req, res) =>{
+    try {
+        const email = req.body.email;
+
+         // Basic user validation
+        
+         if (!isValid(email)) {
+            return res.status(400).send({ status: false, message: "Email is required" });
+        }
+        if (!emailRegex.test(email)) {
+            return res.status(400).send({ status: false, message: "Email should be a valid email" });
+        }
+
+        const user = await userModel.findOne({ email });
+        if (!user) {
+            return res.status(404).send({ status: false, message: "User doesn't exists. Please register first" });
+        }
+        
+        let mailTransporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: 'srikant0052@gmail.com',
+                pass: '***********'
+            }
+        });
+         
+        let mailDetails = {
+            from: 'srikant0052@gmail.com',
+            to: email,
+            subject: 'Password reset',
+            text: 'https://localhost:3000/updatePassword'
+        };
+         
+        mailTransporter.sendMail(mailDetails, function(err, data) {
+            if(err) {
+                console.log('Error Occurs');
+            } else {
+                console.log('Email sent successfully');
+            }
+        });
+
+    } catch (error) {
+        return res.status(500).send({ status: false, message: error.message });
+    }
+
+}
+
+module.exports = { userRegistration, userLogin, userLogout, changePassword, updatePassword , resetPassword};
