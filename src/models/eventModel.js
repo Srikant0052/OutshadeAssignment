@@ -8,7 +8,7 @@ const eventSchema = new mongoose.Schema({
         trim: true
     },
     description: {
-        type: String,
+        type: [String],
         required: true,
         trim: true
     },
@@ -17,14 +17,15 @@ const eventSchema = new mongoose.Schema({
         required: true,
     },
     createdBy: {
-        type: Schema.Types.ObjectId,
+        type: mongoose.Schema.Types.ObjectId,
         required: true,
         ref: 'User'
     },
     invitees: {
-        type: [{ invitee: user }],
+        type: [mongoose.Schema.Types.ObjectId],
+        ref: 'User',
+        invitedAt: Date.now(),
         required: true
-
     }
 },
     { timestamps: true });

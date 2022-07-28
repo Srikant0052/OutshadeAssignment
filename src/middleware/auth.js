@@ -1,4 +1,4 @@
-const jwt = require('jsonwebtoken')
+const jwt = require('jsonwebtoken');
 
 const authorization = (req, res, next) => {
     try {
@@ -7,6 +7,8 @@ const authorization = (req, res, next) => {
             return res.status(403).send({ status: false, message: "Token is missing in cookies" });
         }
         const decodedToken = jwt.verify(token, "abc123");
+
+        //set the decoded token userid in req.user attribute
         req.user = decodedToken.userId;
         next();
     } catch {
